@@ -1,12 +1,12 @@
 "use client";
 
 import { logout } from "@/lib/auth";
+import Button from "./Button";
 
-/** Logout button used across all dashboards. */
 export default function LogoutButton({ className = "" }: { className?: string }) {
   return (
-    <button type="button" onClick={logout} className={className}>
+    <Button variant="danger" onClick={logout} className={className}>
       Logout
-    </button>
+    </Button>
   );
 }

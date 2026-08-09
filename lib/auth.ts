@@ -35,9 +35,11 @@ export function setUser(user: User): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 }
 
-/** Clear the session and return to the login page. */
+/** Clear the session (localStorage + role cookie) and return to /login. */
 export function logout(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
-  window.location.href = "/login";
+  fetch("/api/logout", { method: "POST" }).finally(() => {
+    window.location.href = "/login";
+  });
 }

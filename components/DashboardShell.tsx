@@ -19,19 +19,24 @@ export default function DashboardShell({
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <header className="flex items-center justify-between border-b border-gray-800 px-6 py-4">
-        <div>
-          <h1 className="text-xl font-bold">{title}</h1>
-          {user && (
-            <p className="text-sm text-gray-400">
-              {user.name} · {user.role} · {user.employeeId}
-            </p>
-          )}
+      <header className="sticky top-0 z-10 border-b border-gray-800 bg-black/80 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <div>
+            <h1 className="text-xl font-bold">{title}</h1>
+            {user && (
+              <p className="text-sm text-gray-400">
+                {user.name} · {user.role} · {user.employeeId}
+              </p>
+            )}
+          </div>
+          <LogoutButton />
         </div>
-        <LogoutButton className="rounded bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-700" />
       </header>
-      {description && <p className="px-6 pt-4 text-sm text-gray-400">{description}</p>}
-      <main className="p-6">{children}</main>
+
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+        {description && <p className="mb-6 text-sm text-gray-400">{description}</p>}
+        {children}
+      </div>
     </div>
   );
 }

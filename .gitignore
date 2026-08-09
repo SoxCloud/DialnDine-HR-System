@@ -30,3 +30,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local backup of pre-rewrite history (contains secrets — never push)
+key-removal-backup.bundle

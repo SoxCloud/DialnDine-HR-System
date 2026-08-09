@@ -3,6 +3,8 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Button from "@/components/Button";
+import Card from "@/components/Card";
 import { getCurrentUser, setUser } from "@/lib/auth";
 import { redirectPathForRole } from "@/lib/roles";
 
@@ -12,7 +14,6 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Already signed in -> go straight to that role's dashboard.
   useEffect(() => {
     const user = getCurrentUser();
     if (user) {
@@ -64,37 +65,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-gray-900 p-8 rounded-xl w-full max-w-md"
-      >
-        <h1 className="text-2xl font-bold mb-2 text-center">
-          Dial n Dine HR System
-        </h1>
-        <p className="text-sm text-gray-400 mb-6 text-center">
-          Enter your email or employee ID to sign in
-        </p>
+    <div className="flex min-h-screen items-center justify-center bg-black px-4 text-white">
+      <Card className="w-full max-w-md shadow-xl">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Dial n Dine HR System</h1>
+            <p className="mt-1 text-sm text-gray-400">
+              Sign in with your email or employee ID
+            </p>
+          </div>
 
-        <input
-          type="text"
-          placeholder="Email or Employee ID"
-          value={identifier}
-          onChange={(event) => setIdentifier(event.target.value)}
-          autoComplete="username"
-          className="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:border-blue-500 outline-none mb-4"
-        />
+          <input
+            type="text"
+            placeholder="Email or Employee ID"
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
+            autoComplete="username"
+            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 p-3 rounded font-semibold"
-        >
-          {loading ? "Signing in…" : "Login"}
-        </button>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3"
+          >
+            {loading ? "Signing in…" : "Login"}
+          </Button>
 
-        {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
-      </form>
+          {error && (
+            <p className="text-center text-sm text-red-500">{error}</p>
+          )}
+        </form>
+      </Card>
     </div>
   );
 }
