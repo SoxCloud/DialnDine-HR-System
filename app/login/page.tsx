@@ -10,7 +10,8 @@ import { redirectPathForRole } from "@/lib/roles";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,22 +26,17 @@ export default function LoginPage() {
     event.preventDefault();
     setError("");
 
-    const value = identifier.trim();
-    if (!value) {
-      setError("Enter your email or employee ID");
+    if (!email.trim() || !password) {
+      setError("Enter your email and password");
       return;
     }
 
     setLoading(true);
     try {
-      const payload = value.includes("@")
-        ? { email: value }
-        : { employeeId: value };
-
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
       const data = await res.json();
@@ -71,16 +67,25 @@ export default function LoginPage() {
           <div className="text-center">
             <h1 className="text-2xl font-bold">Dial n Dine HR System</h1>
             <p className="mt-1 text-sm text-gray-400">
-              Sign in with your email or employee ID
+              Sign in with your email and password
             </p>
           </div>
 
           <input
-            type="text"
-            placeholder="Email or Employee ID"
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             autoComplete="username"
+            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
             className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
 

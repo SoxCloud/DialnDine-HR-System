@@ -2,6 +2,15 @@ const STATUS_STYLES: Record<string, string> = {
   Pending: "bg-yellow-500/20 text-yellow-400",
   Approved: "bg-green-500/20 text-green-400",
   Rejected: "bg-red-500/20 text-red-400",
+  completed: "bg-green-500/20 text-green-400",
+  clocked_in: "bg-blue-500/20 text-blue-400",
+  none: "bg-gray-500/20 text-gray-400",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  completed: "Completed",
+  clocked_in: "Clocked In",
+  none: "Not Clocked In",
 };
 
 export default function StatusBadge({ status }: { status: string }) {
@@ -11,7 +20,7 @@ export default function StatusBadge({ status }: { status: string }) {
         STATUS_STYLES[status] ?? "bg-gray-500/20 text-gray-400"
       }`}
     >
-      {status}
+      {STATUS_LABELS[status] ?? status}
     </span>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Card from "@/components/Card";
 import RequireAuth from "@/components/RequireAuth";
 import DashboardShell from "@/components/DashboardShell";
@@ -20,14 +21,23 @@ function AgentContent() {
   const { user } = useAuth();
   const { data, loading, error } = useUserData(user);
 
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const monthShifts = (data?.attendance ?? []).filter(
+    (entry) => String(entry.date).trim() >= monthStart
+  );
+
   return (
     <DashboardShell
       title="Agent Dashboard"
-      description="Your attendance, hours, and leave at a glance."
+      description="Your attendance, monthly hours, and leave at a glance."
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Shifts Logged" value={loading ? "…" : data?.attendance.length} />
-        <StatCard label="Total Hours" value={loading ? "…" : data?.totalHours} />
+        <StatCard
+          label="Hours This Month"
+          value={loading ? "…" : data?.monthHours}
+        />
+        <StatCard label="Shifts This Month" value={loading ? "…" : monthShifts.length} />
         <StatCard label="Leave Used" value={loading ? "…" : data?.leaveBalance.usedLeave} />
         <StatCard label="Leave Remaining" value={loading ? "…" : data?.leaveBalance.remainingLeave} />
       </div>
@@ -35,10 +45,10 @@ function AgentContent() {
       {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card title="Recent Shifts" className="min-w-0">
+        <Card title="Attendance This Month" className="min-w-0">
           {loading ? (
             <p className="text-sm text-gray-500">Loading…</p>
-          ) : data && data.attendance.length > 0 ? (
+          ) : monthShifts.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm whitespace-nowrap">
                 <thead>
@@ -50,11 +60,11 @@ function AgentContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
-                  {data.attendance.slice(0, 8).map((entry, index) => (
+                  {monthShifts.map((entry, index) => (
                     <tr key={`${entry.date}-${index}`}>
                       <td className="py-2 pr-4">{entry.date || "—"}</td>
-                      <td className="py-2 pr-4">{String(entry.clockIn).slice(0, 5) || "—"}</td>
-                      <td className="py-2 pr-4">{String(entry.clockOut).slice(0, 5) || "—"}</td>
+                      <td className="py-2 pr-4">{String(entry.clockIn).slice(11, 16) || String(entry.clockIn).slice(0, 5) || "—"}</td>
+                      <td className="py-2 pr-4">{String(entry.clockOut).slice(11, 16) || String(entry.clockOut).slice(0, 5) || "—"}</td>
                       <td className="py-2">
                         {Number(entry.hoursWorked) > 0 ? entry.hoursWorked : "—"}
                       </td>
@@ -64,11 +74,15 @@ function AgentContent() {
               </table>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No attendance yet.</p>
+            <p className="text-sm text-gray-500">No attendance this month yet.</p>
           )}
         </Card>
 
-        <Card title="Leave Status" className="min-w-0">
+        <Card
+          title="Leave Status"
+          className="min-w-0"
+          action={<Link href="/leave" className="text-sm text-blue-400 hover:text-blue-300">New Request →</Link>}
+        >
           {loading ? (
             <p className="text-sm text-gray-500">Loading…</p>
           ) : data && data.leave.length > 0 ? (

@@ -1,25 +1,37 @@
 /**
  * POST /api/clock-out
  * Close today's open attendance row (the one without a Clock_Out).
- * Body: { employeeId }
+ * Body: { employeeId }  — or { extension } for backwards compatibility.
  */
-import { COLUMN_LETTERS, COLS, SHEETS, findRows, updateRow } from "../../../lib/googleSheets";
+import { COLUMN_LETTERS, COLS, SHEETS, findRows, getClockEnabled, updateRow } from "../../../lib/googleSheets";
+import { findEmployeeById, findEmployeeByExtension } from "../../../lib/employees";
 import { fail, nowISO, ok, readBody, todayISO } from "../../../lib/utils";
 
 export async function POST(request) {
   try {
-    const { employeeId } = await readBody(request);
-    if (!employeeId) {
-      return fail("employeeId is required", 400);
+    // Server-side gate: clocking must be enabled (cannot be bypassed by the client).
+    if (!(await getClockEnabled())) {
+      return fail("Clocking is currently disabled", 403);
     }
 
+    const { employeeId: bodyEmployeeId, extension } = await readBody(request);
+
+    const employee = bodyEmployeeId
+      ? await findEmployeeById(bodyEmployeeId)
+      : await findEmployeeByExtension(extension);
+    if (!employee) {
+      return fail("No employee found", 404);
+    }
+
+    const employeeId = String(employee[COLS.employees.employeeId]).trim();
+    const employeeExtension = String(employee[COLS.employees.extension] ?? "").trim();
     const date = todayISO();
     const clockOut = nowISO();
 
-    // Find today's record(s) for this employee with no Clock_Out yet.
+    // Find today's record(s) for this agent with no Clock_Out yet.
     const openRows = await findRows(SHEETS.attendanceLog, "A1:D", (row) => {
       const matchesEmployee =
-        String(row[COLS.attendance.employeeId]).trim() === String(employeeId).trim();
+        String(row[COLS.attendance.employeeId]).trim() === employeeId;
       const matchesDate = String(row[COLS.attendance.date]).trim() === date;
       const hasNoClockOut = String(row[COLS.attendance.clockOut] ?? "").trim() === "";
       return matchesEmployee && matchesDate && hasNoClockOut;
@@ -37,6 +49,7 @@ export async function POST(request) {
 
     return ok({
       employeeId,
+      extension: employeeExtension,
       date,
       clockOut,
       rowNumber,

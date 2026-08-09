@@ -31,6 +31,7 @@ export interface UserData {
   attendance: AttendanceEntry[];
   leave: LeaveEntry[];
   totalHours: number;
+  monthHours: number;
   leaveBalance: LeaveBalance;
 }
 

@@ -13,7 +13,7 @@ const DATA_ROWS = 200;
 const SHEETS_CONFIG = [
   {
     name: "Employees",
-    headers: ["Employee_ID", "Full_Name", "Email", "Department", "Start_Date", "Role", "Status"]
+    headers: ["Employee_ID", "Full_Name", "Email", "Department", "Start_Date", "Role", "Status", "Password", "Extension_Number"]
   },
   {
     name: "Attendance_Log",
@@ -68,6 +68,30 @@ function setupHRSystem() {
     spreadsheetId,
     spreadsheetUrl
   };
+}
+
+/**
+ * Migrate an EXISTING "Dial n Dine HR System" spreadsheet that predates the
+ * auth columns. Adds the "Password" and "Extension_Number" columns to the
+ * Employees sheet (only when missing) so email/password login and
+ * extension-based clock in/out work without recreating the file.
+ */
+function addEmployeeAuthColumns() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Employees");
+  if (!sheet) return;
+
+  let lastColumn = sheet.getLastColumn() || 1;
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+
+  if (!headers.includes("Password")) {
+    lastColumn += 1;
+    sheet.getRange(1, lastColumn).setValue("Password").setFontWeight("bold");
+  }
+  if (!headers.includes("Extension_Number")) {
+    lastColumn += 1;
+    sheet.getRange(1, lastColumn).setValue("Extension_Number").setFontWeight("bold");
+  }
 }
 
 function createSheet(name, headers) {
@@ -176,4 +200,53 @@ function insertSettings() {
 
   sheet.getRange(4, 1).setValue("Leave Days");
   sheet.getRange(4, 2).setValue(30);
+
+  sheet.getRange(5, 1).setValue("Clock Locked");
+  sheet.getRange(5, 2).setValue("No");
+
+  // Canonical switch: set to "No" to disable clocking (the kiosk hides the
+  // keypad and /api/clock-in + /api/clock-out reject with 403).
+  sheet.getRange(6, 1).setValue("Clock Enabled");
+  sheet.getRange(6, 2).setValue("Yes");
+}
+
+/**
+ * Add the "Clock Locked" row to an EXISTING spreadsheet's Settings sheet
+ * (only when missing). Set the value to "Yes" to freeze the time clock kiosk.
+ */
+function ensureClockLockSetting() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Settings");
+  if (!sheet) return;
+
+  const lastRow = sheet.getLastRow();
+  const values = sheet.getRange(1, 1, lastRow, 1).getValues();
+  const hasRow = values.some(
+    (row) => String(row[0]).trim().toLowerCase() === "clock locked"
+  );
+  if (hasRow) return;
+
+  sheet.getRange(lastRow + 1, 1).setValue("Clock Locked");
+  sheet.getRange(lastRow + 1, 2).setValue("No");
+}
+
+/**
+ * Add the "Clock Enabled" row to an EXISTING spreadsheet's Settings sheet
+ * (only when missing). This is the canonical switch used by the clocking
+ * APIs; "Clock Locked" is kept as a legacy inverse fallback.
+ */
+function ensureClockEnabledSetting() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Settings");
+  if (!sheet) return;
+
+  const lastRow = sheet.getLastRow();
+  const values = sheet.getRange(1, 1, lastRow, 1).getValues();
+  const hasRow = values.some(
+    (row) => String(row[0]).trim().toLowerCase() === "clock enabled"
+  );
+  if (hasRow) return;
+
+  sheet.getRange(lastRow + 1, 1).setValue("Clock Enabled");
+  sheet.getRange(lastRow + 1, 2).setValue("Yes");
 }

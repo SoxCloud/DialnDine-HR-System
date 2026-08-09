@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import RequireAuth from "@/components/RequireAuth";
@@ -120,6 +121,11 @@ function LeaveContent() {
       title="Leave Requests"
       description="Request time off and track its status."
     >
+      <div className="mb-4">
+        <Link href="/agent-dashboard" className="text-sm text-blue-400 hover:text-blue-300">
+          ← Back to Dashboard
+        </Link>
+      </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="New Request" className="h-fit">
           <form onSubmit={handleSubmit} className="space-y-4">

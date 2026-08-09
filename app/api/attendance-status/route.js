@@ -1,22 +1,32 @@
 /**
  * GET /api/attendance-status
  * Returns today's attendance row for an employee.
- * ?employeeId=A001
- * Response: { employeeId, date, clockIn, clockOut, status }
+ * ?employeeId=164  — or ?extension=164 for the kiosk.
+ * Response: { employeeId, extension, date, clockIn, clockOut, status }
  *   status: "none" | "clocked_in" | "completed"
  */
 import { COLS, SHEETS, findRows } from "../../../lib/googleSheets";
+import { findEmployeeById, findEmployeeByExtension } from "../../../lib/employees";
 import { fail, ok, todayISO } from "../../../lib/utils";
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const employeeId = (searchParams.get("employeeId") || "").trim();
+    const employeeIdQuery = (searchParams.get("employeeId") || "").trim();
+    const extension = (searchParams.get("extension") || "").trim();
 
-    if (!employeeId) {
-      return fail("employeeId is required", 400);
+    if (!employeeIdQuery && !extension) {
+      return fail("employeeId or extension is required", 400);
     }
 
+    const employee = employeeIdQuery
+      ? await findEmployeeById(employeeIdQuery)
+      : await findEmployeeByExtension(extension);
+    if (!employee) {
+      return fail("No employee found", 404);
+    }
+
+    const employeeId = String(employee[COLS.employees.employeeId]).trim();
     const date = todayISO();
 
     const matches = await findRows(SHEETS.attendanceLog, "A1:F", (row) => {
@@ -36,6 +46,7 @@ export async function GET(request) {
 
     return ok({
       employeeId,
+      extension,
       date,
       clockIn,
       clockOut,

@@ -8,14 +8,15 @@
  *   employeeId,
  *   attendance: [{ date, clockIn, clockOut, hoursWorked, late, notes }],  // newest first
  *   leave:      [{ requestId, startDate, endDate, days, status }],        // newest first
- *   totalHours,
+ *   totalHours,          // all-time
+ *   monthHours,          // since the 1st of the current month
  *   leaveBalance: { totalLeave, usedLeave, remainingLeave },
  * }
  *
  * Reads are scoped to the exact columns needed (never the whole file).
  */
 import { COLS, SHEETS, getSheetData } from "../../../lib/googleSheets";
-import { durationHours, fail, ok } from "../../../lib/utils";
+import { durationHours, fail, ok, todayISO } from "../../../lib/utils";
 
 const ATTENDANCE_COLS = "A1:G"; // Date..Notes
 const LEAVE_COLS = "A1:G";      // Request_ID..Approved_By
@@ -59,6 +60,18 @@ export async function GET(request) {
       return sum + durationHours(entry.clockIn, entry.clockOut);
     }, 0);
 
+    // Hours worked since the beginning of the current month.
+    const today = todayISO();
+    const monthStart = `${today.slice(0, 7)}-01`;
+    const monthAttendance = attendance.filter(
+      (entry) => String(entry.date).trim() >= monthStart
+    );
+    const monthHours = monthAttendance.reduce((sum, entry) => {
+      const stored = Number(entry.hoursWorked);
+      if (Number.isFinite(stored) && stored > 0) return sum + stored;
+      return sum + durationHours(entry.clockIn, entry.clockOut);
+    }, 0);
+
     // Leave history for this employee only.
     const leave = leaveRows
       .filter(
@@ -93,6 +106,7 @@ export async function GET(request) {
       attendance,
       leave,
       totalHours: Math.round(totalHours * 100) / 100,
+      monthHours: Math.round(monthHours * 100) / 100,
       leaveBalance,
     });
   } catch (error) {

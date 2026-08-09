@@ -1,34 +1,63 @@
 /**
  * POST /api/login
  *
- * Authenticate an employee by email OR employee ID.
- * Returns { employeeId, name, role } or a 404 when no match is found.
+ * Two modes:
+ *  - KIOSK:  { extension }           -> identify an agent by extension number
+ *             (no password, no session cookie) for the time-clock kiosk.
+ *  - WEB:    { email, password }     -> full credential login for Admin/HR/Agent.
+ * Returns { employeeId, name, role, extension } or an error status.
  */
-import { COLS, SHEETS, getSheetData } from "../../../lib/googleSheets";
+import { COLS } from "../../../lib/googleSheets";
+import { findEmployeeByEmail, findEmployeeByExtension } from "../../../lib/employees";
 import { fail, ok, readBody } from "../../../lib/utils";
 
 export async function POST(request) {
   try {
-    const { email, employeeId } = await readBody(request);
+    const { email, password, extension } = await readBody(request);
 
-    const emailQuery = typeof email === "string" ? email.trim().toLowerCase() : "";
-    const idQuery = typeof employeeId === "string" ? employeeId.trim() : "";
-
-    if (!emailQuery && !idQuery) {
-      return fail("Provide an email or an employeeId", 400);
+    // Kiosk login — extension only, never creates a session cookie.
+    if (extension) {
+      const employee = await findEmployeeByExtension(extension);
+      if (!employee) {
+        return fail("Invalid extension", 404);
+      }
+      if (
+        String(employee[COLS.employees.status] ?? "").trim().toLowerCase() ===
+        "inactive"
+      ) {
+        return fail("This account is inactive", 403);
+      }
+      return ok({
+        employeeId: employee[COLS.employees.employeeId],
+        name: employee[COLS.employees.fullName],
+        role: employee[COLS.employees.role],
+        extension: String(employee[COLS.employees.extension] ?? "").trim(),
+      });
     }
 
-    // Only the columns we need: ID, name, email, role.
-    const employees = await getSheetData(SHEETS.employees, "A1:F");
+    const emailQuery = typeof email === "string" ? email.trim() : "";
+    const passwordQuery = typeof password === "string" ? password : "";
 
-    const employee = employees.find((row) => {
-      const rowId = String(row[COLS.employees.employeeId] ?? "").trim();
-      const rowEmail = String(row[COLS.employees.email] ?? "").trim().toLowerCase();
-      return (idQuery && rowId === idQuery) || (emailQuery && rowEmail === emailQuery);
-    });
+    if (!emailQuery || !passwordQuery) {
+      return fail("Email and password are required", 400);
+    }
+
+    const employee = await findEmployeeByEmail(emailQuery);
 
     if (!employee) {
-      return fail("User not found", 404);
+      return fail("No account found with that email", 404);
+    }
+
+    if (
+      String(employee[COLS.employees.status] ?? "").trim().toLowerCase() ===
+      "inactive"
+    ) {
+      return fail("This account is inactive", 403);
+    }
+
+    const storedPassword = String(employee[COLS.employees.password] ?? "");
+    if (storedPassword.trim() === "" || storedPassword !== passwordQuery) {
+      return fail("Incorrect password", 401);
     }
 
     // Persist the role in an httpOnly cookie so proxy.ts can gate protected
@@ -37,6 +66,7 @@ export async function POST(request) {
       employeeId: employee[COLS.employees.employeeId],
       name: employee[COLS.employees.fullName],
       role: employee[COLS.employees.role],
+      extension: String(employee[COLS.employees.extension] ?? "").trim(),
     });
 
     response.cookies.set("hr_role", String(employee[COLS.employees.role]), {
