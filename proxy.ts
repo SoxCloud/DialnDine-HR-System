@@ -14,7 +14,6 @@ const SESSION_ROLE_COOKIE = "hr_role";
 const PROTECTED_ROUTES: Record<string, string[]> = {
   "/admin-dashboard": ["Admin"],
   "/agent-dashboard": ["Agent"],
-  "/clock": ["HR"],
   "/leave": ["Agent"],
 };
 
@@ -48,7 +47,6 @@ export const config = {
   matcher: [
     "/admin-dashboard/:path*",
     "/agent-dashboard/:path*",
-    "/clock/:path*",
     "/leave/:path*",
   ],
 };
