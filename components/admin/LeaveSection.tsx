@@ -5,7 +5,10 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import StatusBadge from "@/components/StatusBadge";
 import Modal from "./Modal";
-import type { AdminLeaveRequest } from "@/hooks/useAdminDashboard";
+import type {
+  AdminEmployeeOption,
+  AdminLeaveRequest,
+} from "@/hooks/useAdminDashboard";
 
 type Tab = "Pending" | "Approved" | "Rejected";
 
@@ -17,11 +20,13 @@ const INPUT_CLASS =
 /** Leave management with Pending / Approved / Rejected tabs and admin actions. */
 export default function LeaveSection({
   requests,
+  employees,
   loading,
   adminName,
   onChanged,
 }: {
   requests: AdminLeaveRequest[];
+  employees: AdminEmployeeOption[];
   loading: boolean;
   adminName: string;
   onChanged: () => Promise<void>;
@@ -29,7 +34,9 @@ export default function LeaveSection({
   const [tab, setTab] = useState<Tab>("Pending");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<AdminLeaveRequest | null>(null);
+  const [employeeId, setEmployeeId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
@@ -71,6 +78,77 @@ export default function LeaveSection({
     runUpdate({ status: "Rejected", approvedBy: adminName }, request.requestId);
   }
 
+  function openAdd() {
+    setAdding(true);
+    setEmployeeId("");
+    setStartDate("");
+    setEndDate("");
+    setReason("");
+    setMessage(null);
+  }
+
+  async function submitAdd() {
+    if (busy) return;
+    if (!employeeId) {
+      setMessage("Pick an employee");
+      return;
+    }
+    if (!startDate || !endDate || endDate < startDate) {
+      setMessage("Pick valid start and end dates");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          startDate,
+          endDate,
+          reason: reason.trim(),
+          approvedBy: adminName,
+        }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        setMessage(payload.error || "Request failed");
+        return;
+      }
+      setAdding(false);
+      await onChanged();
+    } catch {
+      setMessage("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(request: AdminLeaveRequest) {
+    if (busy) return;
+    if (!window.confirm(`Delete leave request ${request.requestId} for ${request.name}?`)) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/leave", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: request.requestId }),
+      });
+      if (!res.ok) {
+        const payload = await res.json();
+        setMessage(payload.error || "Request failed");
+        return;
+      }
+      await onChanged();
+    } catch {
+      setMessage("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function openEdit(request: AdminLeaveRequest) {
     setEditing(request);
     setStartDate(request.startDate);
@@ -88,7 +166,19 @@ export default function LeaveSection({
   }
 
   return (
-    <Card title="Leave Management">
+    <Card
+      title="Leave Management"
+      action={
+        <Button
+          size="md"
+          className="px-3 py-1.5 text-xs"
+          onClick={openAdd}
+          disabled={busy}
+        >
+          Add Leave
+        </Button>
+      }
+    >
       <div className="mb-4 flex gap-2">
         {TABS.map((option) => {
           const count = requests.filter((request) => request.status === option).length;
@@ -179,6 +269,15 @@ export default function LeaveSection({
                       >
                         Edit
                       </Button>
+                      <Button
+                        variant="danger"
+                        size="md"
+                        className="px-3 py-1.5 text-xs"
+                        onClick={() => remove(request)}
+                        disabled={busy}
+                      >
+                        Delete
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -186,6 +285,79 @@ export default function LeaveSection({
             </tbody>
           </table>
         </div>
+      )}
+
+      {adding && (
+        <Modal title="Add Leave Manually" onClose={() => !busy && setAdding(false)}>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm">Employee</label>
+              <select
+                value={employeeId}
+                onChange={(event) => setEmployeeId(event.target.value)}
+                className={INPUT_CLASS}
+              >
+                <option value="">Select an employee…</option>
+                {employees.map((employee) => (
+                  <option key={employee.employeeId} value={employee.employeeId}>
+                    {employee.name} · {employee.employeeId}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate || undefined}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm">Reason</label>
+              <textarea
+                rows={3}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                className={INPUT_CLASS}
+              ></textarea>
+            </div>
+          </div>
+          {message && <p className="mt-4 text-sm text-red-500">{message}</p>}
+          <div className="mt-6 flex justify-end gap-3">
+            <Button
+              variant="danger"
+              size="md"
+              className="px-4 py-2 text-sm"
+              onClick={() => setAdding(false)}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="success"
+              size="md"
+              className="px-4 py-2 text-sm"
+              onClick={submitAdd}
+              disabled={busy || !startDate || !endDate || endDate < startDate}
+            >
+              {busy ? "Saving…" : "Add Leave"}
+            </Button>
+          </div>
+        </Modal>
       )}
 
       {editing && (

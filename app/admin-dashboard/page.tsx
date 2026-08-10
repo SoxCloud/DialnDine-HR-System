@@ -36,7 +36,10 @@ function AdminContent() {
 
         <LiveAttendance
           entries={data?.attendance.entries ?? []}
+          employees={data?.groups.employees ?? []}
+          today={data?.date ?? ""}
           loading={loading}
+          onChanged={refresh}
         />
 
         <GroupsSection
@@ -48,6 +51,7 @@ function AdminContent() {
 
         <LeaveSection
           requests={data?.leave.requests ?? []}
+          employees={data?.groups.employees ?? []}
           loading={loading}
           adminName={user?.name ?? "Admin"}
           onChanged={refresh}
