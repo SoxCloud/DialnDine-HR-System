@@ -1,14 +1,14 @@
 /**
  * POST /api/leave-request
  * Create a leave request. Generates the Request_ID and defaults Status to Pending.
- * Body: { employeeId, startDate, endDate }  (dates in YYYY-MM-DD)
+ * Body: { employeeId, startDate, endDate, reason? }  (dates in YYYY-MM-DD)
  */
 import { COLS, SHEETS, appendRow, getSheetData } from "../../../lib/googleSheets";
 import { daysInclusive, fail, isISODate, ok, readBody } from "../../../lib/utils";
 
 export async function POST(request) {
   try {
-    const { employeeId, startDate, endDate } = await readBody(request);
+    const { employeeId, startDate, endDate, reason } = await readBody(request);
 
     if (!employeeId) {
       return fail("employeeId is required", 400);
@@ -33,6 +33,7 @@ export async function POST(request) {
       days,                  // E: Days
       "Pending",             // F: Status
       "",                    // G: Approved_By
+      String(reason ?? ""),  // H: Reason
     ]);
 
     return ok(
@@ -42,6 +43,7 @@ export async function POST(request) {
         startDate,
         endDate,
         days,
+        reason: String(reason ?? ""),
         status: "Pending",
       },
       201

@@ -5,6 +5,12 @@ const STATUS_STYLES: Record<string, string> = {
   completed: "bg-green-500/20 text-green-400",
   clocked_in: "bg-blue-500/20 text-blue-400",
   none: "bg-gray-500/20 text-gray-400",
+  Present: "bg-green-500/20 text-green-400",
+  Late: "bg-yellow-500/20 text-yellow-400",
+  Absent: "bg-red-500/20 text-red-400",
+  "On Leave": "bg-blue-500/20 text-blue-400",
+  "Clocked In": "bg-green-500/20 text-green-400",
+  "Clocked Out": "bg-gray-500/20 text-gray-400",
 };
 
 const STATUS_LABELS: Record<string, string> = {

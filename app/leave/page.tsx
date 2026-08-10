@@ -35,6 +35,7 @@ function LeaveContent() {
   const { user } = useAuth();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -90,6 +91,7 @@ function LeaveContent() {
           employeeId: user.employeeId,
           startDate,
           endDate,
+          reason,
         }),
       });
       const data = await res.json();
@@ -105,6 +107,7 @@ function LeaveContent() {
       });
       setStartDate("");
       setEndDate("");
+      setReason("");
       await refresh();
     } catch {
       setMessage({
@@ -153,6 +156,19 @@ function LeaveContent() {
                 onChange={(e) => setEndDate(e.target.value)}
                 className={INPUT_CLASS}
               />
+            </div>
+            <div>
+              <label htmlFor="reason" className="mb-1 block text-sm">
+                Reason
+              </label>
+              <textarea
+                id="reason"
+                rows={3}
+                placeholder="e.g. Family emergency, sick leave…"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className={INPUT_CLASS}
+              ></textarea>
             </div>
             <Button type="submit" disabled={submitting} className="w-full py-3">
               {submitting ? "Submitting…" : "Submit Request"}

@@ -21,11 +21,19 @@ const SHEETS_CONFIG = [
   },
   {
     name: "Leave_Requests",
-    headers: ["Request_ID", "Employee_ID", "Start_Date", "End_Date", "Days", "Status", "Approved_By"]
+    headers: ["Request_ID", "Employee_ID", "Start_Date", "End_Date", "Days", "Status", "Approved_By", "Reason"]
   },
   {
     name: "Leave_Balance",
     headers: ["Employee_ID", "Total_Leave", "Used_Leave", "Remaining_Leave"]
+  },
+  {
+    name: "Groups",
+    headers: ["Group_ID", "Group_Name", "Start_Time", "End_Time", "Members"]
+  },
+  {
+    name: "Credits",
+    headers: ["Employee_ID", "Credits", "Updated_At"]
   },
   {
     name: "Dashboard",
@@ -249,4 +257,56 @@ function ensureClockEnabledSetting() {
 
   sheet.getRange(lastRow + 1, 1).setValue("Clock Enabled");
   sheet.getRange(lastRow + 1, 2).setValue("Yes");
+}
+
+/**
+ * Add the admin dashboard schema to an EXISTING spreadsheet:
+ *  - "Reason" column on Leave_Requests (only when missing)
+ *  - "Groups" sheet (only when missing)
+ *  - "Credits" sheet (only when missing)
+ */
+function addHRAdminSchema() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const leaveSheet = ss.getSheetByName("Leave_Requests");
+  if (leaveSheet) {
+    const headers = leaveSheet.getRange(1, 1, 1, leaveSheet.getLastColumn()).getValues()[0];
+    if (!headers.includes("Reason")) {
+      const column = leaveSheet.getLastColumn() + 1;
+      leaveSheet.getRange(1, column).setValue("Reason").setFontWeight("bold");
+    }
+  }
+
+  const groups = ss.getSheetByName("Groups");
+  if (!groups) {
+    insertAdminSheet(ss, "Groups", ["Group_ID", "Group_Name", "Start_Time", "End_Time", "Members"]);
+  }
+
+  const credits = ss.getSheetByName("Credits");
+  if (!credits) {
+    insertAdminSheet(ss, "Credits", ["Employee_ID", "Credits", "Updated_At"]);
+  } else {
+    const headers = credits.getRange(1, 1, 1, credits.getLastColumn()).getValues()[0];
+    if (!headers.includes("Updated_At")) {
+      const column = credits.getLastColumn() + 1;
+      credits.getRange(1, column).setValue("Updated_At").setFontWeight("bold");
+    }
+  }
+}
+
+function insertAdminSheet(ss, name, headers) {
+  for (const sheet of ss.getSheets()) {
+    if (sheet.getName() === name) {
+      ss.deleteSheet(sheet);
+    }
+  }
+  const sheet = ss.insertSheet(name);
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+  try {
+    sheet.autoResizeColumns(1, headers.length);
+  } catch (error) {
+    Logger.log("Auto-resize skipped for '%s': %s", name, error.message);
+  }
 }
