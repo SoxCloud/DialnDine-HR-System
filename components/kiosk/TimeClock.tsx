@@ -31,6 +31,8 @@ interface Toast {
 
 const MAX_CODE_LENGTH = 6;
 const TOAST_DURATION_MS = 3200;
+const IDLE_TIMEOUT_MS = 10_000;
+const IDLE_CHECK_MS = 1_000;
 
 /** Live 12-hour clock (HH:MM am/pm) plus the date line. */
 function useClock() {
@@ -94,6 +96,7 @@ export default function TimeClock() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastActivityRef = useRef<number>(Date.now());
 
   const pushToast = useCallback((type: Toast["type"], message: string) => {
     const id = ++toastId.current;
@@ -102,6 +105,33 @@ export default function TimeClock() {
       setToasts((current) => current.filter((toast) => toast.id !== id));
     }, TOAST_DURATION_MS);
   }, []);
+
+  // Any touch/pointer/keyboard activity resets the idle timer.
+  useEffect(() => {
+    const onActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+    const checkIdle = () => {
+      if (phase !== "ready") return;
+      if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+        if (employee || input || busy) {
+          setEmployee(null);
+          setInput("");
+          setBusy(false);
+        }
+      }
+    };
+    window.addEventListener("pointerdown", onActivity);
+    window.addEventListener("touchstart", onActivity);
+    window.addEventListener("keydown", onActivity);
+    const id = setInterval(checkIdle, IDLE_CHECK_MS);
+    return () => {
+      window.removeEventListener("pointerdown", onActivity);
+      window.removeEventListener("touchstart", onActivity);
+      window.removeEventListener("keydown", onActivity);
+      clearInterval(id);
+    };
+  }, [phase, employee, input, busy]);
 
   // Lock check runs once; the server also rejects clock actions with 403.
   useEffect(() => {
