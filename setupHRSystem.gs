@@ -36,6 +36,10 @@ const SHEETS_CONFIG = [
     headers: ["Employee_ID", "Credits", "Updated_At"]
   },
   {
+    name: "Schedule",
+    headers: ["Group_ID", "Date", "Start_Time", "End_Time"]
+  },
+  {
     name: "Dashboard",
     headers: ["Metric", "Value"]
   },
@@ -264,6 +268,7 @@ function ensureClockEnabledSetting() {
  *  - "Reason" column on Leave_Requests (only when missing)
  *  - "Groups" sheet (only when missing)
  *  - "Credits" sheet (only when missing)
+ *  - "Schedule" sheet (only when missing)
  */
 function addHRAdminSchema() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -291,6 +296,11 @@ function addHRAdminSchema() {
       const column = credits.getLastColumn() + 1;
       credits.getRange(1, column).setValue("Updated_At").setFontWeight("bold");
     }
+  }
+
+  const schedule = ss.getSheetByName("Schedule");
+  if (!schedule) {
+    insertAdminSheet(ss, "Schedule", ["Group_ID", "Date", "Start_Time", "End_Time"]);
   }
 }
 

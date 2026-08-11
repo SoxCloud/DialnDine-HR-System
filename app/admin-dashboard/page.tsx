@@ -7,6 +7,7 @@ import { useAdminDashboard } from "@/hooks/useAdminDashboard";
 import SummaryCards from "@/components/admin/SummaryCards";
 import LiveAttendance from "@/components/admin/LiveAttendance";
 import GroupsSection from "@/components/admin/GroupsSection";
+import MonthSchedule from "@/components/admin/MonthSchedule";
 import LeaveSection from "@/components/admin/LeaveSection";
 import LeaveTodayCard from "@/components/admin/LeaveTodayCard";
 import CreditsSection from "@/components/admin/CreditsSection";
@@ -45,6 +46,12 @@ function AdminContent() {
         <GroupsSection
           groups={data?.groups.groups ?? []}
           employees={data?.groups.employees ?? []}
+          loading={loading}
+          onChanged={refresh}
+        />
+
+        <MonthSchedule
+          groups={data?.groups.groups ?? []}
           loading={loading}
           onChanged={refresh}
         />

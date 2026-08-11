@@ -14,10 +14,12 @@
 import {
   activeEmployees,
   buildGroupMemberMap,
-  buildLateThresholds,
+  buildScheduleMap,
+  buildScheduledLateThresholds,
   loadApprovedLeaveOverlapping,
   loadEmployees,
   loadGroups,
+  loadSchedule,
   loadTodayAttendance,
 } from "../../../../lib/admin";
 import {
@@ -70,14 +72,20 @@ async function findAttendanceRow(date, employeeId) {
 
 export async function GET() {
   try {
-    const [employees, groups, { onLeave }] = await Promise.all([
+    const [employees, groups, schedule, { onLeave }] = await Promise.all([
       loadEmployees(),
       loadGroups(),
+      loadSchedule(),
       loadApprovedLeaveOverlapping(todayISO()),
     ]);
 
     const groupMap = buildGroupMemberMap(groups);
-    const attendanceMap = await loadTodayAttendance(buildLateThresholds(groups));
+    const todayThresholds = buildScheduledLateThresholds(
+      groups,
+      buildScheduleMap(schedule),
+      todayISO()
+    );
+    const attendanceMap = await loadTodayAttendance(todayThresholds);
     const workers = activeEmployees(employees);
 
     const entries = workers.map((employee) => {

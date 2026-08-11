@@ -34,6 +34,19 @@ export interface AdminGroup {
   members: { employeeId: string; name: string }[];
 }
 
+export interface AdminScheduleDay {
+  date: string;
+  off?: boolean;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface AdminMonthlySchedule {
+  groupId: string;
+  month: string;
+  days: AdminScheduleDay[];
+}
+
 export interface AdminEmployeeOption {
   employeeId: string;
   name: string;

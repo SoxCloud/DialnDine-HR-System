@@ -6,24 +6,32 @@
  */
 import {
   activeEmployees,
-  buildLateThresholds,
+  buildScheduleMap,
+  buildScheduledLateThresholds,
   loadApprovedLeaveOverlapping,
   loadEmployees,
   loadGroups,
+  loadSchedule,
   loadTodayAttendance,
 } from "../../../../lib/admin";
 import { fail, ok, todayISO } from "../../../../lib/utils";
 
 export async function GET() {
   try {
-    const [employees, groups, { onLeave }] = await Promise.all([
+    const [employees, groups, schedule, { onLeave }] = await Promise.all([
       loadEmployees(),
       loadGroups(),
+      loadSchedule(),
       loadApprovedLeaveOverlapping(todayISO()),
     ]);
 
     const workers = activeEmployees(employees);
-    const attendanceMap = await loadTodayAttendance(buildLateThresholds(groups));
+    const todayThresholds = buildScheduledLateThresholds(
+      groups,
+      buildScheduleMap(schedule),
+      todayISO()
+    );
+    const attendanceMap = await loadTodayAttendance(todayThresholds);
     const presentToday = attendanceMap.size;
     const onLeaveToday = onLeave.size;
     const absentToday = Math.max(0, workers.length - presentToday - onLeaveToday);

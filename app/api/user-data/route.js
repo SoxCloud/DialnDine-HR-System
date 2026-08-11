@@ -26,7 +26,7 @@ import {
   businessWeekStart,
   shiftBusinessDate,
 } from "../../../lib/time";
-import { loadCredits, loadEmployees, loadGroups } from "../../../lib/admin";
+import { loadCredits, loadEmployees, loadGroups, loadSchedule, buildScheduleMap } from "../../../lib/admin";
 
 const ATTENDANCE_COLS = "A1:G";
 const LEAVE_COLS = "A1:H";
@@ -106,26 +106,66 @@ function collectApprovedLeaveDates(rows, employeeId, today) {
   return dates;
 }
 
-/** Upcoming shift based on the agent's group schedule (business time zone). */
-function computeNextShift(group, now) {
-  if (!group || !group.startTime) return null;
-  const [hour = 0, minute = 0] = String(group.startTime).split(":").map(Number);
+/**
+ * Upcoming shift based on the schedule (business time zone). A day with no
+ * scheduled entry is off. If the group has no schedule at all the legacy
+ * default of "same shift every day" applies.
+ */
+function computeNextShift(group, groupSchedule, now) {
   const today = businessToday(now);
-  const todayStart = businessDateToInstant(today, hour, minute);
+  const scheduled = (date) => groupSchedule?.get(date);
 
-  if (now < todayStart) {
+  const todayShift = scheduled(today);
+  if (todayShift?.startTime) {
+    const [hour = 0, minute = 0] = String(todayShift.startTime).split(":").map(Number);
+    if (now < businessDateToInstant(today, hour, minute)) {
+      return {
+        date: today,
+        startTime: todayShift.startTime,
+        endTime: todayShift.endTime,
+      };
+    }
+  }
+
+  for (let offset = 1; offset <= 14; offset++) {
+    const date = shiftBusinessDate(today, offset);
+    const shift = scheduled(date);
+    if (shift?.startTime) {
+      return { date, startTime: shift.startTime, endTime: shift.endTime };
+    }
+  }
+
+  if (!groupSchedule || groupSchedule.size === 0) {
+    if (!group || !group.startTime) return null;
+    const [hour = 0, minute = 0] = String(group.startTime).split(":").map(Number);
+    const todayStart = businessDateToInstant(today, hour, minute);
+
+    if (now < todayStart) {
+      return {
+        date: today,
+        startTime: group.startTime,
+        endTime: group.endTime,
+      };
+    }
+
     return {
-      date: today,
+      date: shiftBusinessDate(today, 1),
       startTime: group.startTime,
       endTime: group.endTime,
     };
   }
 
-  return {
-    date: shiftBusinessDate(today, 1),
-    startTime: group.startTime,
-    endTime: group.endTime,
-  };
+  return null;
+}
+
+/** Late threshold (minutes past midnight) for one date's scheduled shift. */
+function scheduledThreshold(group, groupSchedule, date) {
+  const scheduled = groupSchedule?.get(date);
+  if (scheduled?.startTime) {
+    const minutes = toMinutes(scheduled.startTime);
+    if (minutes !== null) return minutes;
+  }
+  return toMinutes(group?.startTime) ?? SHIFT_START_MINUTES;
 }
 
 export async function GET(request) {
@@ -136,10 +176,12 @@ export async function GET(request) {
       return fail("employeeId is required", 400);
     }
 
-    const [employees, groups] = await Promise.all([
+    const [employees, groups, schedule] = await Promise.all([
       loadEmployees(),
       loadGroups(),
+      loadSchedule(),
     ]);
+    const scheduleMap = buildScheduleMap(schedule);
 
     const [attendanceRows, leaveRows, balanceRows, credits] =
       await Promise.all([
@@ -160,23 +202,28 @@ export async function GET(request) {
 
     const group =
       groups.find((row) => row.memberIds.includes(employeeId)) || null;
+    const groupSchedule = group ? scheduleMap.get(group.groupId) : undefined;
     const groupInfo = group
       ? { name: group.name, startTime: group.startTime, endTime: group.endTime }
       : null;
-    const lateThreshold = toMinutes(group?.startTime) ?? SHIFT_START_MINUTES;
 
     const attendance = attendanceRows
       .filter((row) => clean(row[COLS.attendance.employeeId]) === employeeId)
       .map((row) => {
         const clockIn = clean(row[COLS.attendance.clockIn]);
         const clockInMinutes = toMinutes(clockIn);
+        const threshold = scheduledThreshold(
+          group,
+          groupSchedule,
+          clean(row[COLS.attendance.date])
+        );
         return {
           employeeId,
           date: clean(row[COLS.attendance.date]),
           clockIn,
           clockOut: clean(row[COLS.attendance.clockOut]),
           hoursWorked: hoursFor(row),
-          late: clockInMinutes !== null && clockInMinutes > lateThreshold,
+          late: clockInMinutes !== null && clockInMinutes > threshold,
         };
       })
       .sort((a, b) => String(b.date).localeCompare(String(a.date)));
@@ -246,7 +293,7 @@ export async function GET(request) {
       absentDays,
       credits: creditRow?.credits ?? 0,
       creditsUpdatedAt: creditRow?.updatedAt ?? "",
-      nextShift: computeNextShift(groupInfo, now),
+      nextShift: computeNextShift(groupInfo, groupSchedule, now),
       attendance: attendance
         .filter((entry) => entry.date >= historyLimit)
         .map(({ late, ...entry }) => ({
