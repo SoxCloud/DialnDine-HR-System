@@ -20,6 +20,12 @@
  */
 import { COLS, SHEETS, getOptionalSheetData, getSheetData } from "../../../lib/googleSheets";
 import { durationHours, fail, ok, SHIFT_START_MINUTES, toMinutes, todayISO } from "../../../lib/utils";
+import {
+  businessDateToInstant,
+  businessToday,
+  businessWeekStart,
+  shiftBusinessDate,
+} from "../../../lib/time";
 import { loadCredits, loadEmployees, loadGroups } from "../../../lib/admin";
 
 const ATTENDANCE_COLS = "A1:G";
@@ -30,8 +36,9 @@ const clean = (value) => String(value ?? "").trim();
 
 const pad2 = (value) => String(value).padStart(2, "0");
 
-function iso(date) {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+/** YYYY-MM-DD for a UTC-anchored Date (TZ-independent calendar math). */
+function utcKey(date) {
+  return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`;
 }
 
 function round2(value) {
@@ -54,25 +61,19 @@ function sumHours(rows) {
   return total;
 }
 
-/** Start of the current week, local time, Monday. */
+/** Start of the current business week, Monday, as a "YYYY-MM-DD" key. */
 function startOfWeek(now) {
-  const date = new Date(now);
-  const day = date.getDay();
-  const diff = (day === 0 ? -6 : 1) - day;
-  date.setDate(date.getDate() + diff);
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return businessWeekStart(businessToday(now));
 }
 
 /** Weekdays (Mon-Fri) from monthStart to yesterday with no attendance record. */
-function countAbsentWeekdays(monthStart, now, presentDates, excludedDates = new Set()) {
-  const start = new Date(`${monthStart}T00:00:00`);
-  const last = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+function countAbsentWeekdays(monthStart, yesterday, presentDates, excludedDates = new Set()) {
+  const cursor = new Date(`${monthStart}T00:00:00Z`);
+  const last = new Date(`${yesterday}T00:00:00Z`);
   let absent = 0;
-  const cursor = new Date(start);
   while (cursor <= last) {
-    const day = cursor.getDay();
-    const dateKey = iso(cursor);
+    const day = cursor.getUTCDay();
+    const dateKey = utcKey(cursor);
     if (
       day !== 0 &&
       day !== 6 &&
@@ -81,7 +82,7 @@ function countAbsentWeekdays(monthStart, now, presentDates, excludedDates = new 
     ) {
       absent += 1;
     }
-    cursor.setDate(cursor.getDate() + 1);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return absent;
 }
@@ -95,36 +96,33 @@ function collectApprovedLeaveDates(rows, employeeId, today) {
     const start = clean(row[COLS.leaveRequests.startDate]);
     const end = clean(row[COLS.leaveRequests.endDate]);
     if (!start || !end || start > today) continue;
-    const cursor = new Date(`${start}T00:00:00`);
-    const endDate = new Date(`${end}T00:00:00`);
+    const cursor = new Date(`${start}T00:00:00Z`);
+    const endDate = new Date(`${end}T00:00:00Z`);
     while (cursor <= endDate) {
-      dates.add(iso(cursor));
-      cursor.setDate(cursor.getDate() + 1);
+      dates.add(utcKey(cursor));
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
   }
   return dates;
 }
 
-/** Upcoming shift based on the agent's group schedule. */
+/** Upcoming shift based on the agent's group schedule (business time zone). */
 function computeNextShift(group, now) {
   if (!group || !group.startTime) return null;
   const [hour = 0, minute = 0] = String(group.startTime).split(":").map(Number);
-  const todayStart = new Date(now);
-  todayStart.setHours(hour, minute, 0, 0);
+  const today = businessToday(now);
+  const todayStart = businessDateToInstant(today, hour, minute);
 
   if (now < todayStart) {
     return {
-      date: iso(now),
+      date: today,
       startTime: group.startTime,
       endTime: group.endTime,
     };
   }
 
-  const next = new Date(now);
-  next.setDate(next.getDate() + 1);
-  next.setHours(0, 0, 0, 0);
   return {
-    date: iso(next),
+    date: shiftBusinessDate(today, 1),
     startTime: group.startTime,
     endTime: group.endTime,
   };
@@ -187,7 +185,7 @@ export async function GET(request) {
 
     const hoursToday = todayEntry?.hoursWorked ?? 0;
     const hoursWeek = sumHours(
-      attendance.filter((entry) => entry.date >= iso(startOfWeek(now)))
+      attendance.filter((entry) => entry.date >= startOfWeek(now))
     );
     const hoursMonth = sumHours(
       attendance.filter((entry) => entry.date >= monthStart)
@@ -223,16 +221,14 @@ export async function GET(request) {
     const approvedLeaveDates = collectApprovedLeaveDates(leaveRows, employeeId, today);
     const absentDays = countAbsentWeekdays(
       monthStart,
-      now,
+      shiftBusinessDate(today, -1),
       presentDates,
       approvedLeaveDates
     );
 
     const creditRow = credits.find((row) => row.employeeId === employeeId) || null;
 
-    const historyLimit = iso(
-      new Date(now.getFullYear(), now.getMonth(), now.getDate() - 13)
-    );
+    const historyLimit = shiftBusinessDate(today, -13);
 
     return ok({
       employeeId,
