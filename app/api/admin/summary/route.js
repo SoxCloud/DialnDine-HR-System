@@ -6,7 +6,8 @@
  */
 import {
   activeEmployees,
-  buildScheduleMap,
+  buildActiveSlots,
+  buildEmployeeScheduleIndex,
   buildScheduledLateThresholds,
   loadApprovedLeaveOverlapping,
   loadEmployees,
@@ -26,12 +27,10 @@ export async function GET() {
     ]);
 
     const workers = activeEmployees(employees);
-    const todayThresholds = buildScheduledLateThresholds(
-      groups,
-      buildScheduleMap(schedule),
-      todayISO()
-    );
-    const attendanceMap = await loadTodayAttendance(todayThresholds);
+    const activeSlots = buildActiveSlots(schedule);
+    const scheduleByDate = buildEmployeeScheduleIndex(activeSlots, groups);
+    const todayThresholds = buildScheduledLateThresholds(groups, activeSlots, todayISO());
+    const attendanceMap = await loadTodayAttendance(todayThresholds, scheduleByDate);
     const presentToday = attendanceMap.size;
     const onLeaveToday = onLeave.size;
     const absentToday = Math.max(0, workers.length - presentToday - onLeaveToday);

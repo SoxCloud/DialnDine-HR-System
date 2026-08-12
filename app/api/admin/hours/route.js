@@ -10,19 +10,25 @@
  */
 import {
   activeEmployees,
+  buildActiveSlots,
+  buildEmployeeScheduleIndex,
   loadEmployees,
   loadGroups,
   loadMonthHours,
+  loadSchedule,
 } from "../../../../lib/admin";
 import { fail, ok } from "../../../../lib/utils";
 
 export async function GET() {
   try {
-    const [employees, groups, monthHours] = await Promise.all([
+    const [employees, groups, schedule] = await Promise.all([
       loadEmployees(),
       loadGroups(),
-      loadMonthHours(),
+      loadSchedule(),
     ]);
+    const activeSlots = buildActiveSlots(schedule);
+    const scheduleByDate = buildEmployeeScheduleIndex(activeSlots, groups);
+    const monthHours = await loadMonthHours(scheduleByDate);
 
     const workers = activeEmployees(employees);
     const byId = new Map(workers.map((employee) => [employee.employeeId, employee.name]));

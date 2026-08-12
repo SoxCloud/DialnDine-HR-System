@@ -13,8 +13,9 @@
  */
 import {
   activeEmployees,
+  buildActiveSlots,
+  buildEmployeeScheduleIndex,
   buildGroupMemberMap,
-  buildScheduleMap,
   buildScheduledLateThresholds,
   loadApprovedLeaveOverlapping,
   loadEmployees,
@@ -80,12 +81,10 @@ export async function GET() {
     ]);
 
     const groupMap = buildGroupMemberMap(groups);
-    const todayThresholds = buildScheduledLateThresholds(
-      groups,
-      buildScheduleMap(schedule),
-      todayISO()
-    );
-    const attendanceMap = await loadTodayAttendance(todayThresholds);
+    const activeSlots = buildActiveSlots(schedule);
+    const scheduleByDate = buildEmployeeScheduleIndex(activeSlots, groups);
+    const todayThresholds = buildScheduledLateThresholds(groups, activeSlots, todayISO());
+    const attendanceMap = await loadTodayAttendance(todayThresholds, scheduleByDate);
     const workers = activeEmployees(employees);
 
     const entries = workers.map((employee) => {

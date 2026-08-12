@@ -7,8 +7,9 @@
 import {
   activeEmployees,
   aggregateHoursByGroup,
+  buildActiveSlots,
+  buildEmployeeScheduleIndex,
   buildGroupMemberMap,
-  buildScheduleMap,
   buildScheduledLateThresholds,
   loadApprovedLeaveOverlapping,
   loadAttendanceSnapshot,
@@ -29,11 +30,15 @@ export async function GET() {
       loadGroups(),
       loadSchedule(),
     ]);
-    const scheduleMap = buildScheduleMap(schedule);
+    const activeSlots = buildActiveSlots(schedule);
+    const scheduleByDate = buildEmployeeScheduleIndex(activeSlots, groups);
 
     const [{ onLeave, agents }, snapshot, leaveRequests, credits] = await Promise.all([
       loadApprovedLeaveOverlapping(today),
-      loadAttendanceSnapshot(buildScheduledLateThresholds(groups, scheduleMap, today)),
+      loadAttendanceSnapshot(
+        buildScheduledLateThresholds(groups, activeSlots, today),
+        scheduleByDate
+      ),
       loadLeaveRequests(employees),
       loadCredits(activeEmployees(employees)),
     ]);

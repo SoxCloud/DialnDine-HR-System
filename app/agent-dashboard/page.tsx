@@ -51,7 +51,7 @@ function AgentContent() {
       <section className="space-y-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <ProfileCard data={data} loading={loading} className="lg:col-span-2" />
-          <NextShiftCard data={data} loading={loading} />
+          <TodayScheduleCard data={data} loading={loading} />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -139,38 +139,62 @@ function ProfileCard({
   );
 }
 
-function NextShiftCard({
+function TodayScheduleCard({
   data,
   loading,
 }: {
   data: ReturnType<typeof useAgentOverview>["data"];
   loading: boolean;
 }) {
+  const schedule = data?.todaySchedule;
+
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm text-gray-400">Next Shift</h2>
+        <h2 className="text-sm text-gray-400">Today&apos;s Schedule</h2>
         <Link href="/leave" className="text-xs text-blue-400 hover:text-blue-300">
           Request leave →
         </Link>
       </div>
       {loading || !data ? (
         <p className="text-sm text-gray-500">Loading…</p>
-      ) : data.nextShift ? (
+      ) : !schedule ? (
+        <p className="text-sm text-gray-500">No group assigned yet.</p>
+      ) : schedule.slots.length === 0 ? (
         <div>
-          <p className="text-3xl font-bold text-blue-400">
-            {data.nextShift.startTime || "—"}
+          <p className="text-3xl font-bold text-gray-600">Off</p>
+          <p className="mt-1 text-sm text-gray-500">
+            No shifts scheduled for today.
           </p>
-          <p className="mt-1 text-sm text-gray-400">{data.nextShift.date}</p>
+        </div>
+      ) : (
+        <div>
+          <div className="flex flex-wrap gap-2">
+            {schedule.slots.map((slot) => (
+              <span
+                key={slot}
+                className="rounded-full border border-blue-600/40 bg-blue-950/40 px-3 py-1.5 text-sm font-semibold text-blue-300"
+              >
+                {slot}
+              </span>
+            ))}
+          </div>
           <p className="mt-3 text-xs text-gray-500">
             Group · {data.group?.name || "—"}
           </p>
-          {data.nextShift.endTime && (
-            <p className="text-xs text-gray-500">Ends at {data.nextShift.endTime}</p>
-          )}
+          <div className="mt-4">
+            {schedule.onShift ? (
+              <span className="inline-flex items-center gap-2 rounded-full bg-green-600/20 px-3 py-1.5 text-xs font-semibold text-green-400">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                On shift now
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-gray-800 px-3 py-1.5 text-xs font-semibold text-gray-400">
+                Not on shift
+              </span>
+            )}
+          </div>
         </div>
-      ) : (
-        <p className="text-sm text-gray-500">No group assigned yet.</p>
       )}
     </Card>
   );

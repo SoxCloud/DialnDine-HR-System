@@ -19,7 +19,7 @@ export interface AgentOverview {
   absentDays: number;
   credits: number;
   creditsUpdatedAt: string;
-  nextShift: { date: string; startTime: string; endTime: string } | null;
+  todaySchedule: { slots: string[]; onShift: boolean } | null;
   attendance: {
     date: string;
     clockIn: string;

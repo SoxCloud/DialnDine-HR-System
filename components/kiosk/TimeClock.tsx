@@ -227,6 +227,9 @@ export default function TimeClock() {
       if (res.ok) {
         if (endpoint === "clock-in") {
           pushToast("success", `Clocked in at ${clockTime(body.clockIn)}`);
+          if (body.unscheduled) {
+            pushToast("info", "Unscheduled — no active time slot this hour");
+          }
         } else {
           pushToast("info", `Clocked out at ${clockTime(body.clockOut)}`);
         }

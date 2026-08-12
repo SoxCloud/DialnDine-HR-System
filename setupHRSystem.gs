@@ -37,7 +37,7 @@ const SHEETS_CONFIG = [
   },
   {
     name: "Schedule",
-    headers: ["Group_ID", "Date", "Start_Time", "End_Time"]
+    headers: ["Date", "Time", "Group_ID"]
   },
   {
     name: "Dashboard",
@@ -300,7 +300,7 @@ function addHRAdminSchema() {
 
   const schedule = ss.getSheetByName("Schedule");
   if (!schedule) {
-    insertAdminSheet(ss, "Schedule", ["Group_ID", "Date", "Start_Time", "End_Time"]);
+    insertAdminSheet(ss, "Schedule", ["Date", "Time", "Group_ID"]);
   }
 }
 
