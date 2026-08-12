@@ -7,7 +7,6 @@ import { useAdminDashboard } from "@/hooks/useAdminDashboard";
 import SummaryCards from "@/components/admin/SummaryCards";
 import LiveAttendance from "@/components/admin/LiveAttendance";
 import GroupsSection from "@/components/admin/GroupsSection";
-import ScheduleGrid from "@/components/admin/ScheduleGrid";
 import LeaveSection from "@/components/admin/LeaveSection";
 import LeaveTodayCard from "@/components/admin/LeaveTodayCard";
 import CreditsSection from "@/components/admin/CreditsSection";
@@ -50,15 +49,8 @@ function AdminContent() {
           onChanged={refresh}
         />
 
-        <ScheduleGrid
-          groups={data?.groups.groups ?? []}
-          loading={loading}
-          onChanged={refresh}
-        />
-
         <LeaveSection
           requests={data?.leave.requests ?? []}
-          employees={data?.groups.employees ?? []}
           loading={loading}
           adminName={user?.name ?? "Admin"}
           onChanged={refresh}
