@@ -11,6 +11,7 @@ import LeaveSection from "@/components/admin/LeaveSection";
 import LeaveTodayCard from "@/components/admin/LeaveTodayCard";
 import CreditsSection from "@/components/admin/CreditsSection";
 import HoursByGroup from "@/components/admin/HoursByGroup";
+import ScheduleGrid from "@/components/admin/ScheduleGrid";
 
 export default function AdminDashboard() {
   return (
@@ -53,6 +54,12 @@ function AdminContent() {
           employees={data?.groups.employees ?? []}
           loading={loading}
           canEdit={canEdit}
+          onChanged={refresh}
+        />
+
+        <ScheduleGrid
+          groups={data?.groups.groups ?? []}
+          loading={loading}
           onChanged={refresh}
         />
 

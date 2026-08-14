@@ -39,6 +39,8 @@ export default function GroupsSection({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberSearchOpen, setMemberSearchOpen] = useState(false);
 
   function openCreate() {
     setName("");
@@ -58,6 +60,8 @@ export default function GroupsSection({
 
   function openMembers(group: AdminGroup) {
     setSelected(new Set(group.memberIds));
+    setMemberSearch("");
+    setMemberSearchOpen(false);
     setMessage(null);
     setModal({ type: "members", group });
   }
@@ -237,30 +241,63 @@ export default function GroupsSection({
         >
           {modal.type === "members" ? (
             <div className="space-y-4">
-              <p className="text-xs text-gray-500">
-                Check the employees that belong to this group.
-              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMemberSearchOpen((open) => !open);
+                  setMemberSearch("");
+                }}
+                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
+              >
+                Search employee
+              </button>
+              {memberSearchOpen && (
+                <input
+                  type="search"
+                  placeholder="Search by name or extension…"
+                  value={memberSearch}
+                  onChange={(event) => setMemberSearch(event.target.value)}
+                  autoFocus
+                  className={INPUT_CLASS}
+                />
+              )}
               <div className="max-h-72 space-y-1 overflow-auto pr-1">
-                {employees.length === 0 && (
-                  <p className="text-sm text-gray-500">No active employees.</p>
-                )}
-                {employees.map((employee) => (
-                  <label
-                    key={employee.employeeId}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-800"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.has(employee.employeeId)}
-                      onChange={() => toggleMember(employee.employeeId)}
-                      className="h-4 w-4 accent-blue-600"
-                    />
-                    <span className="text-sm text-gray-200">{employee.name}</span>
-                    <span className="ml-auto text-xs text-gray-500">
-                      {employee.extension || "—"}
-                    </span>
-                  </label>
-                ))}
+                {(() => {
+                  const query = memberSearch.trim().toLowerCase();
+                  const visible = query
+                    ? employees.filter(
+                        (employee) =>
+                          employee.name.toLowerCase().includes(query) ||
+                          String(employee.extension ?? "").toLowerCase().includes(query)
+                      )
+                    : employees;
+                  if (visible.length === 0) {
+                    return (
+                      <p className="text-sm text-gray-500">
+                        {employees.length === 0
+                          ? "No active employees."
+                          : "No employees match your search."}
+                      </p>
+                    );
+                  }
+                  return visible.map((employee) => (
+                    <label
+                      key={employee.employeeId}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected.has(employee.employeeId)}
+                        onChange={() => toggleMember(employee.employeeId)}
+                        className="h-4 w-4 accent-blue-600"
+                      />
+                      <span className="text-sm text-gray-200">{employee.name}</span>
+                      <span className="ml-auto text-xs text-gray-500">
+                        {employee.extension || "—"}
+                      </span>
+                    </label>
+                  ));
+                })()}
               </div>
             </div>
           ) : (
