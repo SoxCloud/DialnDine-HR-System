@@ -11,10 +11,14 @@ import type { NextRequest } from "next/server";
 
 const SESSION_ROLE_COOKIE = "hr_role";
 
+// Everyone (any logged-in role) can reach the kiosk-independent employee
+// views (own stats / leave). Admin dashboard is view-only for Managers.
+const ALL_ROLES = ["Admin", "Manager", "Agent", "HR"];
+
 const PROTECTED_ROUTES: Record<string, string[]> = {
-  "/admin-dashboard": ["Admin"],
-  "/agent-dashboard": ["Agent"],
-  "/leave": ["Agent"],
+  "/admin-dashboard": ["Admin", "Manager"],
+  "/agent-dashboard": ALL_ROLES,
+  "/leave": ALL_ROLES,
 };
 
 export function proxy(request: NextRequest) {

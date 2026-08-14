@@ -13,10 +13,12 @@ const INPUT_CLASS =
 export default function CreditsSection({
   rows,
   loading,
+  canEdit = true,
   onChanged,
 }: {
   rows: AdminCreditRow[];
   loading: boolean;
+  canEdit?: boolean;
   onChanged: () => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
@@ -107,15 +109,19 @@ export default function CreditsSection({
                     </span>
                   </td>
                   <td className="py-2.5">
-                    <Button
-                      variant="primary"
-                      size="md"
-                      className="px-3 py-1.5 text-xs"
-                      onClick={() => openAdjust(row)}
-                      disabled={busy}
-                    >
-                      Adjust
-                    </Button>
+                    {canEdit ? (
+                      <Button
+                        variant="primary"
+                        size="md"
+                        className="px-3 py-1.5 text-xs"
+                        onClick={() => openAdjust(row)}
+                        disabled={busy}
+                      >
+                        Adjust
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-gray-600">Read-only</span>
+                    )}
                   </td>
                 </tr>
               ))}

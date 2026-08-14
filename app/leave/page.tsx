@@ -25,7 +25,7 @@ const INPUT_CLASS =
 
 export default function LeavePage() {
   return (
-    <RequireAuth roles={["Agent"]}>
+    <RequireAuth roles={["Admin", "Manager", "Agent", "HR"]}>
       <LeaveContent />
     </RequireAuth>
   );

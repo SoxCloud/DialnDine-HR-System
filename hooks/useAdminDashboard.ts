@@ -38,6 +38,8 @@ export interface AdminEmployeeOption {
   employeeId: string;
   name: string;
   extension: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface AdminLeaveRequest {

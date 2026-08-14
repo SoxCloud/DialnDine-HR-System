@@ -14,7 +14,7 @@ import HoursByGroup from "@/components/admin/HoursByGroup";
 
 export default function AdminDashboard() {
   return (
-    <RequireAuth roles={["Admin"]}>
+    <RequireAuth roles={["Admin", "Manager"]}>
       <AdminContent />
     </RequireAuth>
   );
@@ -23,11 +23,16 @@ export default function AdminDashboard() {
 function AdminContent() {
   const { user } = useAuth();
   const { data, loading, error, refresh } = useAdminDashboard(30000);
+  const canEdit = user?.role === "Admin";
 
   return (
     <DashboardShell
       title="Admin Dashboard"
-      description="Attendance, leave, groups, and operational control."
+      description={
+        canEdit
+          ? "Attendance, leave, groups, and operational control."
+          : "Read-only view. Contact an Admin to make changes."
+      }
     >
       <section className="space-y-6">
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -39,6 +44,7 @@ function AdminContent() {
           employees={data?.groups.employees ?? []}
           today={data?.date ?? ""}
           loading={loading}
+          canEdit={canEdit}
           onChanged={refresh}
         />
 
@@ -46,13 +52,16 @@ function AdminContent() {
           groups={data?.groups.groups ?? []}
           employees={data?.groups.employees ?? []}
           loading={loading}
+          canEdit={canEdit}
           onChanged={refresh}
         />
 
         <LeaveSection
           requests={data?.leave.requests ?? []}
+          employees={data?.groups.employees ?? []}
           loading={loading}
           adminName={user?.name ?? "Admin"}
+          canEdit={canEdit}
           onChanged={refresh}
         />
 
@@ -64,6 +73,7 @@ function AdminContent() {
           <CreditsSection
             rows={data?.credits.credits ?? []}
             loading={loading}
+            canEdit={canEdit}
             onChanged={refresh}
           />
         </div>

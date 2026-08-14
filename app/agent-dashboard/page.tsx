@@ -33,7 +33,7 @@ function initials(name: string): string {
 
 export default function AgentDashboard() {
   return (
-    <RequireAuth roles={["Agent"]}>
+    <RequireAuth roles={["Admin", "Manager", "Agent", "HR"]}>
       <AgentContent />
     </RequireAuth>
   );

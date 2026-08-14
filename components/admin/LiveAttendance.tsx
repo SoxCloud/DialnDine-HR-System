@@ -43,12 +43,14 @@ export default function LiveAttendance({
   employees,
   today,
   loading,
+  canEdit = true,
   onChanged,
 }: {
   entries: AdminAttendanceEntry[];
   employees: AdminEmployeeOption[];
   today: string;
   loading: boolean;
+  canEdit?: boolean;
   onChanged: () => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
@@ -87,14 +89,16 @@ export default function LiveAttendance({
   function getIsEarly(employeeId: string): boolean {
     const start = getGroupStartTime(employeeId);
     if (!start) return false;
-    const ci = typeof entries.find((e) => e.employeeId === employeeId)?.clockIn ?? "";
+    const found = entries.find((e) => e.employeeId === employeeId);
+    const ci = found?.clockIn ?? "";
     return toTimeInput(ci) < start;
   }
 
   function getIsOvertime(employeeId: string): boolean {
     const end = getGroupEndTime(employeeId);
     if (!end) return false;
-    const co = typeof entries.find((e) => e.employeeId === employeeId)?.clockOut ?? "";
+    const found = entries.find((e) => e.employeeId === employeeId);
+    const co = found?.clockOut ?? "";
     return toTimeInput(co) > end;
   }
 
@@ -112,6 +116,7 @@ export default function LiveAttendance({
   }
 
   function openAdd() {
+    if (!canEdit) return;
     setDraft({ employeeId: "", name: "", hasRecord: false, status: "" });
     setDate(today);
     setClockIn("");
@@ -179,14 +184,16 @@ export default function LiveAttendance({
             onChange={(event) => setSearch(event.target.value)}
             className="w-56 rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm text-white outline-none focus:border-blue-500"
           />
-          <Button
-            size="md"
-            className="px-3 py-1.5 text-xs"
-            onClick={openAdd}
-            disabled={busy}
-          >
-            Add Attendance
-          </Button>
+          {canEdit && (
+            <Button
+              size="md"
+              className="px-3 py-1.5 text-xs"
+              onClick={openAdd}
+              disabled={busy}
+            >
+              Add Attendance
+            </Button>
+          )}
         </div>
       }
     >
@@ -218,12 +225,7 @@ export default function LiveAttendance({
                 const groupEnd = getGroupEndTime(employeeId);
                 const isEarly = getIsEarly(employeeId);
                 const isOvertime = getIsOvertime(employeeId);
-                const tint = {
-                  Present: "ROW_TINT.Present",
-                  Late: "ROW_TINT.Late",
-                  Absent: "ROW_TINT.Absent",
-                  "On Leave": "ROW_TINT["On Leave"]",
-                }[entry.status] ?? "";
+                const tint = ROW_TINT[entry.status] ?? "";
                 const earlyFlag = isEarly ? "Early" : "";
                 const overtimeFlag = isOvertime ? "Overtime" : "";
                 const flags = [earlyFlag, overtimeFlag].filter(Boolean).join(" ");
@@ -286,8 +288,8 @@ export default function LiveAttendance({
                     <option key={employee.employeeId} value={employee.employeeId}>
                       {employee.name} · {employee.employeeId}
                     </option>
-                  ))
-                }
+                  ))}
+                </select>
               </div>
             )}
             <div>

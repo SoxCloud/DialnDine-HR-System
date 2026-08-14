@@ -45,6 +45,17 @@ export async function GET() {
 
     const workers = activeEmployees(employees);
     const groupMap = buildGroupMemberMap(groups);
+    const groupTimes = new Map();
+    for (const group of groups) {
+      for (const employeeId of group.memberIds) {
+        if (!groupTimes.has(employeeId)) {
+          groupTimes.set(employeeId, {
+            startTime: group.startTime,
+            endTime: group.endTime,
+          });
+        }
+      }
+    }
     const monthTotals = snapshot.monthTotals;
     const attendanceMap = snapshot.todayMap;
     const roster = new Map(employees.map((employee) => [employee.employeeId, employee.name]));
@@ -82,11 +93,16 @@ export async function GET() {
         .filter((member) => workers.some((employee) => employee.employeeId === member.employeeId)),
     }));
 
-    const employeesPayload = workers.map(({ employeeId, name, extension }) => ({
-      employeeId,
-      name,
-      extension,
-    }));
+    const employeesPayload = workers.map(({ employeeId, name, extension }) => {
+      const times = groupTimes.get(employeeId);
+      return {
+        employeeId,
+        name,
+        extension,
+        startTime: times?.startTime ?? "",
+        endTime: times?.endTime ?? "",
+      };
+    });
 
     const hoursByGroup = aggregateHoursByGroup(groups, monthTotals, workers);
 

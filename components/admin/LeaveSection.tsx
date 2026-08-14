@@ -23,12 +23,14 @@ export default function LeaveSection({
   employees,
   loading,
   adminName,
+  canEdit = true,
   onChanged,
 }: {
   requests: AdminLeaveRequest[];
   employees: AdminEmployeeOption[];
   loading: boolean;
   adminName: string;
+  canEdit?: boolean;
   onChanged: () => Promise<void>;
 }) {
   const [tab, setTab] = useState<Tab>("Pending");
@@ -169,14 +171,16 @@ export default function LeaveSection({
     <Card
       title="Leave Management"
       action={
-        <Button
-          size="md"
-          className="px-3 py-1.5 text-xs"
-          onClick={openAdd}
-          disabled={busy}
-        >
-          Add Leave
-        </Button>
+        canEdit && (
+          <Button
+            size="md"
+            className="px-3 py-1.5 text-xs"
+            onClick={openAdd}
+            disabled={busy}
+          >
+            Add Leave
+          </Button>
+        )
       }
     >
       <div className="mb-4 flex gap-2">
@@ -237,48 +241,52 @@ export default function LeaveSection({
                     <StatusBadge status={request.status} />
                   </td>
                   <td className="py-2.5">
-                    <div className="flex gap-2">
-                      {request.status === "Pending" && (
-                        <>
-                          <Button
-                            variant="success"
-                            size="md"
-                            className="px-3 py-1.5 text-xs"
-                            onClick={() => approve(request)}
-                            disabled={busy}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="md"
-                            className="px-3 py-1.5 text-xs"
-                            onClick={() => reject(request)}
-                            disabled={busy}
-                          >
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                      <Button
-                        variant="primary"
-                        size="md"
-                        className="px-3 py-1.5 text-xs"
-                        onClick={() => openEdit(request)}
-                        disabled={busy}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="md"
-                        className="px-3 py-1.5 text-xs"
-                        onClick={() => remove(request)}
-                        disabled={busy}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    {canEdit ? (
+                      <div className="flex gap-2">
+                        {request.status === "Pending" && (
+                          <>
+                            <Button
+                              variant="success"
+                              size="md"
+                              className="px-3 py-1.5 text-xs"
+                              onClick={() => approve(request)}
+                              disabled={busy}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="md"
+                              className="px-3 py-1.5 text-xs"
+                              onClick={() => reject(request)}
+                              disabled={busy}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          variant="primary"
+                          size="md"
+                          className="px-3 py-1.5 text-xs"
+                          onClick={() => openEdit(request)}
+                          disabled={busy}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="md"
+                          className="px-3 py-1.5 text-xs"
+                          onClick={() => remove(request)}
+                          disabled={busy}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-600">Read-only</span>
+                    )}
                   </td>
                 </tr>
               ))}

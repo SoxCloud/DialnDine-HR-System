@@ -5,7 +5,7 @@
  * never sent to the server; the API routes never see credentials.
  */
 
-export type UserRole = "Admin" | "Agent" | "HR";
+export type UserRole = "Admin" | "Manager" | "Agent" | "HR";
 
 export interface User {
   employeeId: string;

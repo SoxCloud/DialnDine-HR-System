@@ -7,6 +7,7 @@ import type { UserRole } from "./auth";
 
 export const ROLE_REDIRECTS: Record<UserRole, string> = {
   Admin: "/admin-dashboard",
+  Manager: "/admin-dashboard",
   Agent: "/agent-dashboard",
   HR: "/clock",
 };

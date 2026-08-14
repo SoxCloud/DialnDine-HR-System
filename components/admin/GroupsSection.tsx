@@ -22,11 +22,13 @@ export default function GroupsSection({
   groups,
   employees,
   loading,
+  canEdit = true,
   onChanged,
 }: {
   groups: AdminGroup[];
   employees: AdminEmployeeOption[];
   loading: boolean;
+  canEdit?: boolean;
   onChanged: () => Promise<void>;
 }) {
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -136,7 +138,9 @@ export default function GroupsSection({
   return (
     <Card
       title="Group Management"
-      action={<Button onClick={openCreate} disabled={busy}>Add Group</Button>}
+      action={
+        canEdit && <Button onClick={openCreate} disabled={busy}>Add Group</Button>
+      }
     >
       {loading ? (
         <p className="text-sm text-gray-500">Loading…</p>
@@ -181,33 +185,39 @@ export default function GroupsSection({
                 <p className="mb-4 text-xs text-gray-600">No members assigned.</p>
               )}
               <div className="mt-auto flex flex-wrap gap-2">
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="px-3 py-1.5 text-xs"
-                  onClick={() => openEdit(group)}
-                  disabled={busy}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="px-3 py-1.5 text-xs"
-                  onClick={() => openMembers(group)}
-                  disabled={busy}
-                >
-                  Assign / Remove
-                </Button>
-                <Button
-                  variant="danger"
-                  size="md"
-                  className="ml-auto px-3 py-1.5 text-xs"
-                  onClick={() => removeGroup(group)}
-                  disabled={busy}
-                >
-                  Delete
-                </Button>
+                {canEdit ? (
+                  <>
+                    <Button
+                      variant="primary"
+                      size="md"
+                      className="px-3 py-1.5 text-xs"
+                      onClick={() => openEdit(group)}
+                      disabled={busy}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="md"
+                      className="px-3 py-1.5 text-xs"
+                      onClick={() => openMembers(group)}
+                      disabled={busy}
+                    >
+                      Assign / Remove
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="md"
+                      className="ml-auto px-3 py-1.5 text-xs"
+                      onClick={() => removeGroup(group)}
+                      disabled={busy}
+                    >
+                      Delete
+                    </Button>
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-600">Read-only</span>
+                )}
               </div>
             </div>
           ))}
