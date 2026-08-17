@@ -79,6 +79,8 @@ function AdminContent() {
           />
           <CreditsSection
             rows={data?.credits.credits ?? []}
+            log={data?.credits.log ?? []}
+            employees={data?.groups.employees ?? []}
             loading={loading}
             canEdit={canEdit}
             onChanged={refresh}

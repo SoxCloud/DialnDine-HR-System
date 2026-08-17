@@ -19,7 +19,7 @@ function CircularArrowIcon() {
   );
 }
 
-/** Dark navy footer: brand on the left, "Powered by TimePro" on the right. */
+/** Dark navy footer: brand on the left, "by SoxCloud" on the right. */
 export default function TimeClockFooter() {
   return (
     <footer className="flex h-full w-full items-center justify-between bg-gradient-to-t from-[#0a1128] to-[#0d1730] px-6 sm:px-10">
@@ -31,6 +31,7 @@ export default function TimeClockFooter() {
           Dial n Dine HR System
         </span>
       </div>
+      <span className="italic text-white/40">by SoxCloud</span>
     </footer>
   );
 }

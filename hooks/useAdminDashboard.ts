@@ -64,8 +64,29 @@ export interface AdminLeaveAgent {
 export interface AdminCreditRow {
   employeeId: string;
   name: string;
+  amount: number;
+  hours: number;
   credits: number;
   updatedAt: string | null;
+}
+
+export interface AdminCreditLogEntry {
+  date: string;
+  employeeId: string;
+  name: string;
+  type: string;
+  store: string;
+  customerDetails: string;
+  reason: string;
+  amount: number;
+  hours: number;
+  createdAt: string;
+}
+
+export interface AdminMonthEndCandidate {
+  employeeId: string;
+  name: string;
+  hoursAfter25th: number;
 }
 
 export interface AdminHoursEmployee {
@@ -93,7 +114,7 @@ export interface AdminDashboardData {
   groups: { groups: AdminGroup[]; employees: AdminEmployeeOption[] };
   leave: { requests: AdminLeaveRequest[] };
   leaveToday: { agents: AdminLeaveAgent[] };
-  credits: { credits: AdminCreditRow[] };
+  credits: { credits: AdminCreditRow[]; log: AdminCreditLogEntry[] };
   hours: AdminHoursByGroup;
 }
 
