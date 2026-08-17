@@ -10,10 +10,12 @@
 import { SLOT_HOURS, isSlotDate, readCellsForDate, timeForHour, writeCellsForDate } from "../../../../lib/schedule";
 import { loadGroups } from "../../../../lib/admin";
 import { fail, ok, readBody } from "../../../../lib/utils";
+import { requireAdmin, requireAdminOrManager } from "../../../../lib/serverAuth";
 
 const clean = (value) => String(value ?? "").trim();
 
 export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const { searchParams } = new URL(request.url);
     const date = clean(searchParams.get("date"));
@@ -46,6 +48,7 @@ export async function GET(request) {
 }
 
 export async function PUT(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const body = await readBody(request);
     const date = clean(body.date);

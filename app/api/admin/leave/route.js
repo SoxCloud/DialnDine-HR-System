@@ -14,12 +14,14 @@
 import { COLUMN_LETTERS, COLS, SHEETS, appendRow, clearRow, findRows, getSheetData, updateRow } from "../../../../lib/googleSheets";
 import { loadEmployees, loadLeaveRequests } from "../../../../lib/admin";
 import { daysInclusive, fail, isISODate, ok, readBody } from "../../../../lib/utils";
+import { requireAdmin, requireAdminOrManager } from "../../../../lib/serverAuth";
 
 const LEAVE_COLS = "A1:H";
 
 const clean = (value) => String(value ?? "").trim();
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const employees = await loadEmployees();
     const requests = await loadLeaveRequests(employees);
@@ -31,6 +33,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { employeeId, startDate, endDate, reason, status, approvedBy } = await readBody(request);
 
@@ -80,6 +83,7 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { requestId, startDate, endDate, reason, status, approvedBy } = await readBody(request);
 
@@ -132,6 +136,7 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { requestId } = await readBody(request);
 

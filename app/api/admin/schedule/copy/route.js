@@ -5,10 +5,12 @@
  */
 import { isSlotDate, readCellsForDate, writeCellsForDate } from "../../../../../lib/schedule";
 import { fail, ok, readBody } from "../../../../../lib/utils";
+import { requireAdmin } from "../../../../../lib/serverAuth";
 
 const clean = (value) => String(value ?? "").trim();
 
 export async function POST(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { fromDate, toDate } = await readBody(request);
     const source = clean(fromDate);

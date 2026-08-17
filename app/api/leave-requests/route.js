@@ -6,8 +6,10 @@
  */
 import { COLS, SHEETS, findRows } from "../../../lib/googleSheets";
 import { fail, ok } from "../../../lib/utils";
+import { requireAnyUser } from "../../../lib/serverAuth";
 
 export async function GET(request) {
+  if (!(await requireAnyUser(request))) return fail("Unauthorized", 401);
   try {
     const { searchParams } = new URL(request.url);
     const employeeId = (searchParams.get("employeeId") || "").trim();

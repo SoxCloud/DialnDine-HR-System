@@ -6,10 +6,42 @@
  *             (no password, no session cookie) for the time-clock kiosk.
  *  - WEB:    { email, password }     -> full credential login for Admin/HR/Agent.
  * Returns { employeeId, name, role, extension } or an error status.
+ *
+ * Security: WEB login is rate-limited per IP (in-memory sliding window),
+ * passwords are verified via scrypt hash (with legacy plaintext fallback),
+ * and the session role cookie is HMAC-signed (AUTH_SECRET).
  */
 import { COLS } from "../../../lib/googleSheets";
 import { findEmployeeByEmail, findEmployeeByExtension } from "../../../lib/employees";
+import { verifyPassword } from "../../../lib/passwords";
+import { signRole } from "../../../lib/cookieAuth";
 import { fail, ok, readBody } from "../../../lib/utils";
+
+const WINDOW_MS = 60_000;
+const MAX_ATTEMPTS = 10;
+
+// In-memory sliding window: ip -> [timestamps]. Best-effort rate limit
+// (per server instance) to blunt brute-force attempts.
+const attempts = new Map();
+
+function ipOf(request) {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return request.headers.get("x-real-ip") || "unknown";
+}
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const recent = (attempts.get(ip) || []).filter((ts) => now - ts < WINDOW_MS);
+  attempts.set(ip, recent);
+  if (recent.length >= MAX_ATTEMPTS) return true;
+  recent.push(now);
+  return false;
+}
+
+function resetRateLimit(ip) {
+  attempts.delete(ip);
+}
 
 export async function POST(request) {
   try {
@@ -42,6 +74,11 @@ export async function POST(request) {
       return fail("Email and password are required", 400);
     }
 
+    const ip = ipOf(request);
+    if (isRateLimited(ip)) {
+      return fail("Too many attempts. Please try again later.", 429);
+    }
+
     const employee = await findEmployeeByEmail(emailQuery);
 
     if (!employee) {
@@ -56,20 +93,29 @@ export async function POST(request) {
     }
 
     const storedPassword = String(employee[COLS.employees.password] ?? "");
-    if (storedPassword.trim() === "" || storedPassword !== passwordQuery) {
+    if (
+      storedPassword.trim() === "" ||
+      !verifyPassword(passwordQuery, storedPassword)
+    ) {
       return fail("Incorrect password", 401);
     }
 
-    // Persist the role in an httpOnly cookie so proxy.ts can gate protected
-    // pages even on a hard refresh. The full session stays in localStorage.
+    resetRateLimit(ip);
+
+    const role = String(employee[COLS.employees.role]);
+    const signedRole = await signRole(role);
+
+    // Persist the signed role in an httpOnly cookie so proxy.ts can gate
+    // protected pages even on a hard refresh. The full session stays in
+    // localStorage.
     const response = ok({
       employeeId: employee[COLS.employees.employeeId],
       name: employee[COLS.employees.fullName],
-      role: employee[COLS.employees.role],
+      role,
       extension: String(employee[COLS.employees.extension] ?? "").trim(),
     });
 
-    response.cookies.set("hr_role", String(employee[COLS.employees.role]), {
+    response.cookies.set("hr_role", signedRole, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",

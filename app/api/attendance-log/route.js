@@ -7,11 +7,13 @@
  */
 import { COLS, SHEETS, getSheetData } from "../../../lib/googleSheets";
 import { fail, ok } from "../../../lib/utils";
+import { requireAdminOrManager } from "../../../lib/serverAuth";
 
 const EMPLOYEE_COLS = "A1:I";
 const ATTENDANCE_COLS = "A1:G";
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const [employees, attendance] = await Promise.all([
       getSheetData(SHEETS.employees, EMPLOYEE_COLS),

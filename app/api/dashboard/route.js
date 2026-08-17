@@ -20,8 +20,10 @@ import {
   loadSchedule,
 } from "../../../lib/admin";
 import { fail, ok, todayISO } from "../../../lib/utils";
+import { requireAdminOrManager } from "../../../lib/serverAuth";
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const today = todayISO();
 
@@ -60,27 +62,36 @@ export async function GET() {
     const attendanceMap = snapshot.todayMap;
     const roster = new Map(employees.map((employee) => [employee.employeeId, employee.name]));
 
-    const presentToday = attendanceMap.size;
-    const onLeaveToday = onLeave.size;
-    const absentToday = Math.max(0, workers.length - presentToday - onLeaveToday);
+    const scheduledToday = new Set(
+      workers
+        .map((employee) => scheduleByDate.get(employee.employeeId)?.get(today))
+        .map((hours, index) => (hours && hours.size ? workers[index].employeeId : null))
+        .filter(Boolean)
+    );
 
-    const entries = workers.map((employee) => {
-      const attendance = attendanceMap.get(employee.employeeId);
-      let status = "Absent";
-      if (onLeave.has(employee.employeeId)) status = "On Leave";
-      else if (attendance) status = attendance.late ? "Late" : "Present";
+    const presentToday = [...attendanceMap.keys()].filter((id) => scheduledToday.has(id)).length;
+    const onLeaveToday = [...onLeave].filter((id) => scheduledToday.has(id)).length;
+    const absentToday = Math.max(0, scheduledToday.size - presentToday - onLeaveToday);
 
-      return {
-        employeeId: employee.employeeId,
-        name: employee.name,
-        extension: employee.extension,
-        group: groupMap.get(employee.employeeId) || "—",
-        status,
-        clockIn: attendance?.clockIn ?? "",
-        clockOut: attendance?.clockOut ?? "",
-        hoursWorked: attendance?.hoursWorked ?? 0,
-      };
-    });
+    const entries = workers
+      .filter((employee) => scheduledToday.has(employee.employeeId))
+      .map((employee) => {
+        const attendance = attendanceMap.get(employee.employeeId);
+        let status = "Absent";
+        if (onLeave.has(employee.employeeId)) status = "On Leave";
+        else if (attendance) status = attendance.late ? "Late" : "Present";
+
+        return {
+          employeeId: employee.employeeId,
+          name: employee.name,
+          extension: employee.extension,
+          group: groupMap.get(employee.employeeId) || "—",
+          status,
+          clockIn: attendance?.clockIn ?? "",
+          clockOut: attendance?.clockOut ?? "",
+          hoursWorked: attendance?.hoursWorked ?? 0,
+        };
+      });
 
     const groupsPayload = groups.map((group) => ({
       groupId: group.groupId,

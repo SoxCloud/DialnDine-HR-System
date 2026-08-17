@@ -17,6 +17,7 @@ import {
   loadSchedule,
 } from "../../../../../lib/admin";
 import { fail, nowISO, ok, readBody, todayISO } from "../../../../../lib/utils";
+import { requireAdmin, requireAdminOrManager } from "../../../../../lib/serverAuth";
 
 const clean = (value) => String(value ?? "").trim();
 
@@ -32,6 +33,7 @@ function nextMonth(month) {
 }
 
 export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const { searchParams } = new URL(request.url);
     const month = monthInput(searchParams.get("month"));
@@ -54,6 +56,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { month, employeeIds } = await readBody(request);
     const m = monthInput(month);

@@ -10,10 +10,12 @@
 import { COLS, SHEETS, appendRow } from "../../../../lib/googleSheets";
 import { loadCreditLog, loadCredits, activeEmployees, loadEmployees } from "../../../../lib/admin";
 import { fail, nowISO, ok, readBody, todayISO } from "../../../../lib/utils";
+import { requireAdmin, requireAdminOrManager } from "../../../../lib/serverAuth";
 
 const clean = (value) => String(value ?? "").trim();
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const employees = await loadEmployees();
     const active = activeEmployees(employees);
@@ -29,6 +31,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { employeeId, date, store, customerDetails, reason, amount } = await readBody(request);
 

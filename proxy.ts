@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { readRoleCookie, verifyRole } from "@/lib/cookieAuth";
 
 /**
  * Route protection for role-scoped pages.
  *
- * The role is read from the `hr_role` cookie set by /api/login.
- * To keep proxy edge-safe we only check the role value stored there;
+ * The role is read from the `hr_role` cookie set by /api/login and verified
+ * against an HMAC signature (AUTH_SECRET) so it cannot be forged.
+ * To keep proxy edge-safe we only check the verified role value stored there;
  * localStorage (used by the UI) cannot be read by proxy.
  */
-
-const SESSION_ROLE_COOKIE = "hr_role";
 
 // Everyone (any logged-in role) can reach the kiosk-independent employee
 // views (own stats / leave). Admin dashboard is view-only for Managers.
@@ -21,7 +21,7 @@ const PROTECTED_ROUTES: Record<string, string[]> = {
   "/leave": ALL_ROLES,
 };
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const route = Object.entries(PROTECTED_ROUTES).find(
@@ -34,9 +34,14 @@ export function proxy(request: NextRequest) {
   }
 
   const allowedRoles = route[1];
-  const role = request.cookies.get(SESSION_ROLE_COOKIE)?.value;
+  let role: string | null = null;
+  try {
+    role = await verifyRole(readRoleCookie(request));
+  } catch {
+    role = null; // AUTH_SECRET missing/unset -> treat as unauthenticated.
+  }
 
-  // No session, or the session role is not allowed for this page.
+  // No verified session, or the session role is not allowed for this page.
   if (!role || !allowedRoles.includes(role)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";

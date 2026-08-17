@@ -27,6 +27,7 @@ import {
   shiftBusinessDate,
 } from "../../../lib/time";
 import { buildActiveSlots, hoursWithinSlots, loadCredits, loadEmployees, loadGroups, loadSchedule } from "../../../lib/admin";
+import { requireAnyUser } from "../../../lib/serverAuth";
 
 const ATTENDANCE_COLS = "A1:G";
 const LEAVE_COLS = "A1:H";
@@ -138,6 +139,7 @@ function slotTimes(activeSlots, group, date) {
 }
 
 export async function GET(request) {
+  if (!(await requireAnyUser(request))) return fail("Unauthorized", 401);
   try {
     const { searchParams } = new URL(request.url);
     const employeeId = (searchParams.get("employeeId") || "").trim();

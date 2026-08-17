@@ -5,8 +5,10 @@
  */
 import { COLS, SHEETS, appendRow, getSheetData } from "../../../lib/googleSheets";
 import { daysInclusive, fail, isISODate, ok, readBody } from "../../../lib/utils";
+import { requireAnyUser } from "../../../lib/serverAuth";
 
 export async function POST(request) {
+  if (!(await requireAnyUser(request))) return fail("Unauthorized", 401);
   try {
     const { employeeId, startDate, endDate, reason } = await readBody(request);
 

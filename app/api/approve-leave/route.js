@@ -5,8 +5,10 @@
  */
 import { COLUMN_LETTERS, COLS, SHEETS, findRows, updateRow } from "../../../lib/googleSheets";
 import { fail, ok, readBody } from "../../../lib/utils";
+import { requireAdmin } from "../../../lib/serverAuth";
 
 export async function POST(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { requestId, approvedBy } = await readBody(request);
 

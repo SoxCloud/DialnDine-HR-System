@@ -11,6 +11,7 @@
 import { COLUMN_LETTERS, COLS, SHEETS, appendRow, clearRow, findRows, getOptionalSheetData, updateRow } from "../../../../lib/googleSheets";
 import { activeEmployees, loadEmployees, loadGroups } from "../../../../lib/admin";
 import { fail, ok, readBody } from "../../../../lib/utils";
+import { requireAdmin, requireAdminOrManager } from "../../../../lib/serverAuth";
 
 const GROUP_COLS = "A1:E";
 
@@ -21,7 +22,8 @@ function toTime(value) {
   return String(value);
 }
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const [groups, allEmployees] = await Promise.all([loadGroups(), loadEmployees()]);
     const employees = activeEmployees(allEmployees);
@@ -47,6 +49,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { name, startTime, endTime } = await readBody(request);
 
@@ -73,6 +76,7 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { groupId, name, startTime, endTime, members } = await readBody(request);
 
@@ -106,6 +110,7 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { groupId } = await readBody(request);
 

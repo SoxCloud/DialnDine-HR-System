@@ -9,8 +9,10 @@ import {
   loadEmployees,
 } from "../../../../lib/admin";
 import { fail, ok, todayISO } from "../../../../lib/utils";
+import { requireAdminOrManager } from "../../../../lib/serverAuth";
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const today = todayISO();
     const [employees, { agents }] = await Promise.all([

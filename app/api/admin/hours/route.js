@@ -18,8 +18,10 @@ import {
   loadSchedule,
 } from "../../../../lib/admin";
 import { fail, ok } from "../../../../lib/utils";
+import { requireAdminOrManager } from "../../../../lib/serverAuth";
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const [employees, groups, schedule] = await Promise.all([
       loadEmployees(),

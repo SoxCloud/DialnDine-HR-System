@@ -32,6 +32,7 @@ import {
   updateRow,
 } from "../../../../lib/googleSheets";
 import { fail, isISODate, ok, readBody, todayISO } from "../../../../lib/utils";
+import { requireAdmin, requireAdminOrManager } from "../../../../lib/serverAuth";
 
 const ATTENDANCE_COLS = "A1:D";
 
@@ -71,7 +72,8 @@ async function findAttendanceRow(date, employeeId) {
   return matches[matches.length - 1] || null;
 }
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await requireAdminOrManager(request))) return fail("Unauthorized", 401);
   try {
     const [employees, groups, schedule, { onLeave }] = await Promise.all([
       loadEmployees(),
@@ -123,6 +125,7 @@ export async function GET() {
 
 /** Add a manual attendance row (or override an existing one for the same day). */
 export async function POST(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { error, record } = parseRecord(await readBody(request));
     if (error) return fail(error, 400);
@@ -164,6 +167,7 @@ export async function POST(request) {
 
 /** Edit an existing attendance record's clock in/out. */
 export async function PUT(request) {
+  if (!(await requireAdmin(request))) return fail("Unauthorized", 401);
   try {
     const { error, record } = parseRecord(await readBody(request));
     if (error) return fail(error, 400);
